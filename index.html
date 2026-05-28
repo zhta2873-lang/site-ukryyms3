@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام مبيعات متطور</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <!-- مكتبة قراءة الباركود عبر الكاميرا -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #d4af37; /* لون ذهبي فخم */
+            --accent: #3498db;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-main: #333333;
+            --border-color: #eeeeee;
+        }
+
+        body.dark-mode {
+            --primary: #f1c40f;
+            --secondary: #d4af37;
+            --accent: #2980b9;
+            --success: #27ae60;
+            --danger: #c0392b;
+            --bg-color: #1a1a2e;
+            --card-bg: #16213e;
+            --text-main: #ffffff;
+            --border-color: #2a2a4a;
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* شريط التنقل العلوي */
+        .navbar {
+            background-color: var(--primary);
+            padding: 15px 20px;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .store-name {
+            font-size: 1.8rem;
+            font-weight: 900;
+            color: var(--secondary);
+            margin: 0;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            background: transparent;
+            color: white;
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+
+        .tab-btn.active, .tab-btn:hover {
+            background: var(--secondary);
+            color: #111;
+            border-color: var(--secondary);
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 0 15px;
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            border-top: 4px solid var(--secondary);
+            transition: background-color 0.3s;
+        }
+
+        .card-title {
+            font-size: 1.4rem;
+            color: var(--text-main);
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* الحقول والأزرار */
+        .input-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .input-wrapper {
+            flex: 1;
+            min-width: 200px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .input-wrapper label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-main);
+            opacity: 0.8;
+        }
+
+        input, select {
+            padding: 12px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            font-family: 'Cairo', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            transition: 0.2s;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--secondary);
+            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
+        }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: 'Cairo', sans-serif;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary { background-color: var(--accent); color: white; width: 100%; }
+        .btn-primary:hover { opacity: 0.9; }
+        
+        .btn-secondary { background-color: var(--secondary); color: #111; }
+        .btn-secondary:hover { opacity: 0.9; }
+
+        .btn-success { background-color: var(--success); color: white; width: 100%; }
+        .btn-success:hover { opacity: 0.9; }
+
+        .btn-danger { background-color: var(--danger); color: white; }
+        .btn-danger:hover { opacity: 0.9; }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 2px solid var(--border-color);
+            color: var(--text-main);
+        }
+
+        /* الكاميرا */
+        #camera-container {
+            display: none;
+            margin-bottom: 20px;
+            border: 2px dashed var(--secondary);
+            border-radius: 12px;
+            overflow: hidden;
+            background: #000;
+        }
+
+        /* الجداول */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: right;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-weight: 700;
+        }
+
+        .total-section {
+            margin-top: 25px;
+            font-size: 1.8rem;
+            font-weight: 900;
+            color: var(--text-main);
+            background: var(--bg-color);
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            border: 2px dashed var(--secondary);
+        }
+
+        /* نافذة منبثقة (Modal) للضغط المطول */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-card {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+            border-top: 5px solid var(--secondary);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-card h3 {
+            margin-top: 0;
+            color: var(--text-main);
+        }
+
+        .modal-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        /* إعدادات الطباعة */
+        @media print {
+            body { background: white; padding: 0; color: black; }
+            .navbar, .tabs, .hide-print, .modal-overlay { display: none !important; }
+            .card { box-shadow: none; border: none; padding: 0; margin: 0; }
+            table, th, td { border: 1px solid #000; color: black; }
+            .total-section { border: 1px solid #000; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- شريط التنقل العلوي -->
+    <div class="navbar hide-print">
+        <h1 class="store-name" id="displayStoreName">Waili Store</h1>
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('tab-cashier')">🛒 الكاشير</button>
+            <button class="tab-btn" onclick="switchTab('tab-inventory')">📦 المنتجات</button>
+            <button class="tab-btn" onclick="switchTab('tab-history')">📊 المبيعات</button>
+            <button class="tab-btn" onclick="switchTab('tab-settings')">⚙️ الإعدادات</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- ======================= 1. تبويب الكاشير ======================= -->
+        <div id="tab-cashier" class="tab-content active">
+            <div class="card hide-print">
+                <h2 class="card-title">نقطة البيع (POS)</h2>
+                
+                <div class="input-group">
+                    <button class="btn-secondary" style="flex: 0.3;" onclick="toggleCamera()">📷 مسح بالكاميرا</button>
+                    <input type="text" id="scanInput" style="flex: 1;" placeholder="مرر الباركود هنا أو اكتب الكود واضغط Enter..." onkeypress="handleScan(event)">
+                    <button class="btn-primary" style="flex: 0.3;" onclick="searchAndAdd()">إضافة</button>
+                </div>
+
+                <!-- حاوية الكاميرا -->
+                <div id="camera-container">
+                    <div id="reader"></div>
+                    <button class="btn-danger" style="width: 100%; border-radius: 0 0 12px 12px;" onclick="toggleCamera()">إيقاف الكاميرا</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">فاتورة العميل الحالية</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>المنتج</th>
+                            <th>السعر</th>
+                            <th>الكمية</th>
+                            <th>الإجمالي</th>
+                            <th class="hide-print">إجراء</th>
+                        </tr>
+                    </thead>
+                    <tbody id="invoiceBody"></tbody>
+                </table>
+                
+                <div class="total-section">
+                    الإجمالي المطلوب: <span id="finalTotal">0</span> <span class="currency-symbol">$</span>
+                    <div id="taxDisplayInfo" style="font-size: 1rem; color: #7f8c8d; font-weight: normal; margin-top: 5px;"></div>
+                </div>
+                <br>
+                <div class="input-group hide-print">
+                    <button class="btn-success" onclick="completeSale()">✅ إتمام البيع (حفظ في السجل)</button>
+                    <button class="btn-primary" onclick="window.print()">🖨️ طباعة</button>
+                    <button class="btn-outline" onclick="clearInvoice()">🗑️ تفريغ</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================= 2. تبويب المنتجات (المخزن) ======================= -->
+        <div id="tab-inventory" class="tab-content">
+            <div class="card">
+                <h2 class="card-title">إضافة منتج جديد</h2>
+                <div class="input-group">
+                    <div class="input-wrapper">
+                        <label>كود الباركود</label>
+                        <input type="text" id="regBarcode" placeholder="مثال: 1001">
+                    </div>
+                    <div class="input-wrapper">
+                        <label>اسم المنتج</label>
+                        <input type="text" id="regName" placeholder="اسم المنتج">
+                    </div>
+                    <div class="input-wrapper">
+                        <label>سعر البيع</label>
+                        <input type="number" id="regPrice" placeholder="السعر">
+                    </div>
+                </div>
+                <button class="btn-primary" onclick="registerProduct()">💾 حفظ المنتج في المخزن</button>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">قائمة المنتجات المتوفرة</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>الكود</th>
+                            <th>الاسم</th>
+                            <th>السعر</th>
+                            <th>إجراء</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ======================= 3. تبويب سجل المبيعات ======================= -->
+        <div id="tab-history" class="tab-content">
+            <div class="card">
+                <div class="card-title">
+                    <span>أرشيف المبيعات</span>
+                    <button id="historyOptionsBtn" class="btn-danger" style="padding: 8px 15px; font-size: 0.9rem;">
+                        ⚙️ خيارات السجل (اضغط مطولاً)
+                    </button>
+                </div>
+                <p style="color: #7f8c8d; font-size: 0.9rem;">يتم حفظ الفواتير المكتملة هنا. لا يمكن حذفها إلا من قبل الإدارة بالضغط المطول على الزر أعلاه.</p>
+                
+                <div id="salesHistoryContainer">
+                    <!-- سيتم عرض الفواتير السابقة هنا -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================= 4. تبويب الإعدادات الفخمة ======================= -->
+        <div id="tab-settings" class="tab-content">
+            <div class="card">
+                <h2 class="card-title">إعدادات النظام</h2>
+                
+                <div class="input-group">
+                    <div class="input-wrapper">
+                        <label>اسم المتجر (يظهر في الترويسة)</label>
+                        <input type="text" id="setStoreName" placeholder="مثال: Waili Store">
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <div class="input-wrapper">
+                        <label>رمز العملة</label>
+                        <select id="setCurrency">
+                            <select id="setCurrency">
+                                <option value="$">دولار ($)</option>
+                                <option value="ر.س">ريال سعودي (ر.س)</option>
+                                <option value="ر.ي">ريال يمني (ر.ي)</option>
+                                <option value="€">يورو (€)</option>
+                                <option value="EGP">جنيه مصري</option>
+                            </select>
+                        </select>
+                    </div>
+                    <div class="input-wrapper">
+                        <label>نسبة الضريبة (VAT %)</label>
+                        <input type="number" id="setTax" placeholder="مثال: 15" value="0" min="0">
+                    </div>
+                </div>
+
+                <div class="input-group" style="align-items: center; margin-top: 20px;">
+                    <label style="font-weight: 600; font-size: 1.1rem; color: var(--text-main); margin-left: 15px;">الوضع الليلي (Dark Mode):</label>
+                    <label class="switch" style="position: relative; display: inline-block; width: 50px; height: 28px;">
+                        <input type="checkbox" id="setThemeToggle" style="opacity: 0; width: 0; height: 0;" onchange="toggleTheme()">
+                        <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; display: flex; align-items: center;">
+                            <span id="themeIndicator" style="width: 20px; height: 20px; background-color: white; border-radius: 50%; transition: .4s; transform: translateX(4px);"></span>
+                        </span>
+                    </label>
+                </div>
+
+                <br>
+                <button class="btn-secondary" style="width: 100%;" onclick="saveSettings()">فظ الإعدادات</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- نافذة الضغط المطول (Modal) -->
+    <div id="longPressModal" class="modal-overlay">
+        <div class="modal-card">
+            <h3>خيارات سجل المبيعات</h3>
+            <p style="font-size: 0.9rem; color: var(--text-main); opacity: 0.8;">ماذا تريد أن تفعل بسجل المبيعات؟</p>
+            <div class="modal-options">
+                <button class="btn-success" onclick="shareSalesHistory()">📤 مشاركة / تصدير كملف نصي</button>
+                <button class="btn-danger" onclick="deleteAllHistory()">🗑️ حذف جميع السجلات نهائياً</button>
+                <button class="btn-outline" onclick="closeModal()">❌ إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ================= بيانات النظام والمخزن ================= */
+        let inventory = JSON.parse(localStorage.getItem('waili_inventory')) || [];
+        let currentInvoice = JSON.parse(localStorage.getItem('waili_invoice')) || [];
+        let salesHistory = JSON.parse(localStorage.getItem('waili_sales_history')) || [];
+        
+        let appSettings = JSON.parse(localStorage.getItem('waili_settings')) || {
+            storeName: "Waili Store",
+            currency: "$",
+            taxRate: 0,
+            darkMode: false
+        };
+
+        // تهيئة الإعدادات عند بدء التشغيل
+        function initApp() {
+            applySettings();
+            renderInventory();
+            renderInvoice();
+            renderHistory();
+        }
+
+        /* ================= نظام التبويبات ================= */
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            
+            document.getElementById(tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
+
+            // إيقاف الكاميرا إذا خرجنا من تبويب الكاشير
+            if(tabId !== 'tab-cashier' && html5QrCode && html5QrCode.isScanning) {
+                stopCamera();
+            }
+        }
+
+        /* ================= الإعدادات ================= */
+        function applySettings() {
+            document.getElementById('displayStoreName').innerText = appSettings.storeName;
+            document.getElementById('setStoreName').value = appSettings.storeName;
+            document.getElementById('setCurrency').value = appSettings.currency;
+            document.getElementById('setTax').value = appSettings.taxRate;
+            
+            document.querySelectorAll('.currency-symbol').forEach(el => el.innerText = appSettings.currency);
+            
+            if (appSettings.darkMode) {
+                document.body.classList.add('dark-mode');
+                document.getElementById('setThemeToggle').checked = true;
+                document.getElementById('themeIndicator').style.transform = "translateX(26px)";
+            } else {
+                document.body.classList.remove('dark-mode');
+                document.getElementById('setThemeToggle').checked = false;
+                document.getElementById('themeIndicator').style.transform = "translateX(4px)";
+            }
+        }
+
+        function toggleTheme() {
+            const isDark = document.getElementById('setThemeToggle').checked;
+            appSettings.darkMode = isDark;
+            applySettings();
+        }
+
+        function saveSettings() {
+            appSettings.storeName = document.getElementById('setStoreName').value || "Waili Store";
+            appSettings.currency = document.getElementById('setCurrency').value;
+            appSettings.taxRate = parseFloat(document.getElementById('setTax').value) || 0;
+            appSettings.darkMode = document.getElementById('setThemeToggle').checked;
+            
+            localStorage.setItem('waili_settings', JSON.stringify(appSettings));
+            applySettings();
+            renderInvoice(); // لتحديث الضريبة في الفاتورة
+            alert("تم حفظ الإعدادات بنجاح!");
+        }
+
+        /* ================= المخزن (إضافة وعرض) ================= */
+        function registerProduct() {
+            const barcode = document.getElementById('regBarcode').value.trim();
+            const name = document.getElementById('regName').value.trim();
+            const price = parseFloat(document.getElementById('regPrice').value);
+
+            if (!barcode || !name || isNaN(price)) {
+                alert("الرجاء تعبئة جميع بيانات المنتج بشكل صحيح!"); return;
+            }
+            if (inventory.find(p => p.barcode === barcode)) {
+                alert("هذا الكود مسجل مسبقاً!"); return;
+            }
+
+            inventory.push({ barcode, name, price });
+            localStorage.setItem('waili_inventory', JSON.stringify(inventory));
+            
+            document.getElementById('regBarcode').value = '';
+            document.getElementById('regName').value = '';
+            document.getElementById('regPrice').value = '';
+            
+            renderInventory();
+            alert("تم الحفظ في المخزن!");
+        }
+
+        function renderInventory() {
+            const tbody = document.getElementById('inventoryBody');
+            tbody.innerHTML = '';
+            inventory.forEach((item, index) => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${item.barcode}</td>
+                        <td>${item.name}</td>
+                        <td>${item.price} ${appSettings.currency}</td>
+                        <td><button class="btn-danger" style="padding:5px 10px; font-size:0.8rem;" onclick="deleteProduct(${index})">حذف</button></td>
+                    </tr>
+                `;
+            });
+        }
+
+        function deleteProduct(index) {
+            if(confirm("هل تريد حذف هذا المنتج من المخزن؟")) {
+                inventory.splice(index, 1);
+                localStorage.setItem('waili_inventory', JSON.stringify(inventory));
+                renderInventory();
+            }
+        }
+
+        /* ================= الكاشير (الكاميرا والبحث) ================= */
+        let html5QrCode;
+        
+        function toggleCamera() {
+            const container = document.getElementById('camera-container');
+            if (container.style.display === 'block') {
+                stopCamera();
+            } else {
+                startCamera();
+            }
+        }
+
+        function startCamera() {
+            document.getElementById('camera-container').style.display = 'block';
+            html5QrCode = new Html5Qrcode("reader");
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            
+            html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
+                // عند التقاط باركود
+                document.getElementById('scanInput').value = decodedText;
+                searchAndAdd();
+                // يمكن إضافة إيقاف تلقائي للكاميرا هنا إذا أردت
+            }).catch(err => {
+                console.log(err);
+                alert("لم نتمكن من الوصول للكاميرا. تأكد من إعطاء الصلاحيات.");
+                stopCamera();
+            });
+        }
+
+        function stopCamera() {
+            if (html5QrCode && html5QrCode.isScanning) {
+                html5QrCode.stop().then(() => {
+                    document.getElementById('camera-container').style.display = 'none';
+                }).catch(err => console.log(err));
+            } else {
+                document.getElementById('camera-container').style.display = 'none';
+            }
+        }
+
+        function handleScan(event) {
+            if (event.key === 'Enter') searchAndAdd();
+        }
+
+        function searchAndAdd() {
+            const scanInput = document.getElementById('scanInput');
+            const code = scanInput.value.trim();
+            if (!code) return;
+
+            const product = inventory.find(p => p.barcode === code);
+            if (product) {
+                const existingItem = currentInvoice.find(item => item.barcode === product.barcode);
+                if (existingItem) {
+                    existingItem.qty += 1;
+                } else {
+                    currentInvoice.push({ ...product, qty: 1 });
+                }
+                localStorage.setItem('waili_invoice', JSON.stringify(currentInvoice));
+                scanInput.value = '';
+                renderInvoice();
+            } else {
+                alert("المنتج غير موجود! تأكد من إضافته للمخزن أولاً.");
+                scanInput.value = '';
+            }
+        }
+
+        /* ================= الفاتورة الحالية ================= */
+        function renderInvoice() {
+            const tbody = document.getElementById('invoiceBody');
+            tbody.innerHTML = '';
+            let subtotal = 0;
+
+            currentInvoice.forEach((item, index) => {
+                const itemTotal = item.price * item.qty;
+                subtotal += itemTotal;
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${item.name}</td>
+                        <td>${item.price} ${appSettings.currency}</td>
+                        <td>
+                            <button onclick="updateQty(${index}, -1)" style="padding: 2px 8px; font-size:1rem; border:1px solid #ddd; border-radius:4px; background:#fff; cursor:pointer;">-</button>
+                            <span style="display:inline-block; width:30px; text-align:center; font-weight:bold;">${item.qty}</span>
+                            <button onclick="updateQty(${index}, 1)" style="padding: 2px 8px; font-size:1rem; border:1px solid #ddd; border-radius:4px; background:#fff; cursor:pointer;">+</button>
+                        </td>
+                        <td>${itemTotal.toFixed(2)} ${appSettings.currency}</td>
+                        <td class="hide-print"><button class="btn-danger" style="padding: 5px 10px; font-size:0.8rem;" onclick="removeItem(${index})">حذف</button></td>
+                    </tr>
+                `;
+            });
+
+            // حساب الضريبة
+            let taxAmount = (subtotal * appSettings.taxRate) / 100;
+            let finalTotal = subtotal + taxAmount;
+
+            document.getElementById('finalTotal').innerText = finalTotal.toFixed(2);
+            
+            const taxInfo = document.getElementById('taxDisplayInfo');
+            if(appSettings.taxRate > 0) {
+                taxInfo.innerText = `(شامل ضريبة ${appSettings.taxRate}% بقيمة ${taxAmount.toFixed(2)} ${appSettings.currency})`;
+            } else {
+                taxInfo.innerText = "";
+            }
+        }
+
+        function updateQty(index, change) {
+            if(currentInvoice[index].qty + change > 0) {
+                currentInvoice[index].qty += change;
+            } else {
+                currentInvoice.splice(index, 1);
+            }
+            localStorage.setItem('waili_invoice', JSON.stringify(currentInvoice));
+            renderInvoice();
+        }
+
+        function removeItem(index) {
+            currentInvoice.splice(index, 1);
+            localStorage.setItem('waili_invoice', JSON.stringify(currentInvoice));
+            renderInvoice();
+        }
+
+        function clearInvoice() {
+            if(currentInvoice.length === 0) return;
+            if(confirm("هل تريد تفريغ الفاتورة الحالية (دون حفظها)؟")) {
+                currentInvoice = [];
+                localStorage.setItem('waili_invoice', JSON.stringify(currentInvoice));
+                renderInvoice();
+            }
+        }
+
+        /* ================= إتمام البيع وأرشيف المبيعات ================= */
+        function completeSale() {
+            if (currentInvoice.length === 0) {
+                alert("الفاتورة فارغة!"); return;
+            }
+            
+            // حساب الإجمالي
+            let subtotal = currentInvoice.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            let total = subtotal + ((subtotal * appSettings.taxRate) / 100);
+
+            // إنشاء كائن الفاتورة
+            const invoiceRecord = {
+                id: Date.now(),
+                date: new Date().toLocaleString('ar-EG'),
+                items: [...currentInvoice],
+                total: total
+            };
+
+            salesHistory.push(invoiceRecord);
+            localStorage.setItem('waili_sales_history', JSON.stringify(salesHistory));
+            
+            // تفريغ الفاتورة الحالية
+            currentInvoice = [];
+            localStorage.setItem('waili_invoice', JSON.stringify(currentInvoice));
+            
+            renderInvoice();
+            renderHistory();
+            alert("تم إتمام البيع وحفظ الفاتورة بنجاح!");
+        }
+
+        function renderHistory() {
+            const container = document.getElementById('salesHistoryContainer');
+            container.innerHTML = '';
+
+            if(salesHistory.length === 0) {
+                container.innerHTML = '<p style="text-align:center; padding: 20px; color: #95a5a6;">لا توجد مبيعات سابقة مسجلة.</p>';
+                return;
+            }
+
+            // عرض الفواتير من الأحدث للأقدم
+            [...salesHistory].reverse().forEach(invoice => {
+                let itemsHtml = invoice.items.map(i => `${i.name} (x${i.qty})`).join(' ، ');
+                container.innerHTML += `
+                    <div style="background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-top: 15px;">
+                        <div style="display:flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 10px;">
+                            <strong>رقم الفاتورة: #${invoice.id.toString().slice(-6)}</strong>
+                            <span style="color:#7f8c8d; font-size: 0.9rem;">${invoice.date}</span>
+                        </div>
+                        <p style="margin: 0 0 10px 0; font-size: 0.95rem;">${itemsHtml}</p>
+                        <div style="color: var(--success); font-weight: bold; font-size: 1.1rem;">
+                            الإجمالي: ${invoice.total.toFixed(2)} ${appSettings.currency}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        /* ================= الضغط المطول لخيارات السجل ================= */
+        const historyBtn = document.getElementById('historyOptionsBtn');
+        const modal = document.getElementById('longPressModal');
+        let pressTimer;
+
+        // دعم الماوس واللمس
+        historyBtn.addEventListener('mousedown', startPress);
+        historyBtn.addEventListener('touchstart', startPress);
+        historyBtn.addEventListener('mouseup', cancelPress);
+        historyBtn.addEventListener('mouseleave', cancelPress);
+        historyBtn.addEventListener('touchend', cancelPress);
+
+        function startPress(e) {
+            e.preventDefault(); // لمنع السلوك الافتراضي (مثل القوائم المنبثقة للجوال)
+            pressTimer = window.setTimeout(() => {
+                modal.classList.add('active');
+            }, 1000); // 1000 ملي ثانية = ثانية واحدة
+        }
+
+        function cancelPress() {
+            clearTimeout(pressTimer);
+        }
+
+        function closeModal() {
+            modal.classList.remove('active');
+        }
+
+        function deleteAllHistory() {
+            if(confirm("تحذير ⚠️: هل أنت متأكد من حذف جميع المبيعات بشكل نهائي؟ لا يمكن التراجع عن هذا الإجراء!")) {
+                let password = prompt("أدخل كلمة المرور للتأكيد (الافتراضية: 1234):");
+                if (password === "1234") {
+                    salesHistory = [];
+                    localStorage.setItem('waili_sales_history', JSON.stringify(salesHistory));
+                    renderHistory();
+                    closeModal();
+                    alert("تم مسح السجل بالكامل.");
+                } else {
+                    alert("كلمة المرور خاطئة!");
+                }
+            }
+        }
+
+        function shareSalesHistory() {
+            if(salesHistory.length === 0) {
+                alert("السجل فارغ!"); return;
+            }
+            
+            let report = `${appSettings.storeName} - تقرير المبيعات\n`;
+            report += `==============================\n\n`;
+            
+            let grandTotal = 0;
+            salesHistory.forEach(inv => {
+                report += `فاتورة #${inv.id.toString().slice(-6)} | التاريخ: ${inv.date}\n`;
+                inv.items.forEach(i => report += `- ${i.name} (الكمية: ${i.qty})\n`);
+                report += `الإجمالي: ${inv.total.toFixed(2)} ${appSettings.currency}\n`;
+                report += `------------------------------\n`;
+                grandTotal += inv.total;
+            });
+            report += `\nإجمالي جميع المبيعات: ${grandTotal.toFixed(2)} ${appSettings.currency}`;
+
+            // محاولة استخدام ميزة المشاركة في الجوال
+            if (navigator.share) {
+                navigator.share({
+                    title: 'تقرير مبيعات المتجر',
+                    text: report,
+                }).catch(err => console.error("Error sharing:", err));
+            } else {
+                // إذا لم يدعم المتصفح المشاركة، قم بتنزيل ملف نصي
+                const blob = new Blob([report], { type: 'text/plain' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = 'sales_report.txt';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+            }=
+            closeModal();
+        }
+
+        // تشغيل التطبيق
+        initApp();
+    </script>
+</body>
+</html>
